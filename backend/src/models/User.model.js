@@ -5,7 +5,6 @@ const userSchema = new mongoose.Schema(
   {
     userName: {
       type: String,
-      required: true,
       trim: true,
     },
     email: {
@@ -32,14 +31,13 @@ const userSchema = new mongoose.Schema(
 );
 
 // Hash password before save (only if modified)
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('passwordHash')) return next();
+userSchema.pre('save', async function () {
+  if (!this.isModified('passwordHash')) return;
 
   try {
     this.passwordHash = await bcrypt.hash(this.passwordHash, 12);
-    next();
   } catch (err) {
-    next(err);
+    throw err; // will propagate to save() error
   }
 });
 

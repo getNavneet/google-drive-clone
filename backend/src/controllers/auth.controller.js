@@ -1,5 +1,5 @@
 import User from '../models/User.model.js';
-
+import { generateToken } from '../middleware/auth.middleware.js';
 const isValidEmail = (email) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);

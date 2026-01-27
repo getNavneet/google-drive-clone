@@ -5,12 +5,13 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = '7d';
  
 export const generateToken = (userId, email) => {
+  if (!JWT_SECRET) throw new Error('JWT_SECRET is not defined');
   return jwt.sign({ id: userId, email }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 };
 // verifies auth_token JWT, loads user, and attaches it to req for protected routes
 export const protect = async (req, res, next) => {
   try {
-    const token = req.cookies?.token;
+    const token = req.cookies?.auth_token;
 
     if (!token) {
       return res.status(401).json({ error: 'Not authenticated' });

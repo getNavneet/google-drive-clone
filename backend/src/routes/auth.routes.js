@@ -9,7 +9,7 @@ router.get('/status', (req, res) => {
 router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.post('/logout', logoutUser);
-router.get('/me', protect, getCurrentUser);
+router.post('/me', protect, getCurrentUser);
 router.post('/delete-account', protect, deleteUserAccount);
 
 
