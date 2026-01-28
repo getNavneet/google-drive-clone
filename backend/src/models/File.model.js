@@ -24,6 +24,12 @@ const fileSchema = new mongoose.Schema(
       required: true,
     },
 
+    status: {
+      type: String,
+      enum: ["pending", "active", "failed"],
+      default: "pending",
+    },
+
     isDeleted: {
       type: Boolean,
       default: false,
@@ -41,7 +47,7 @@ const fileSchema = new mongoose.Schema(
       default: null,
     },
   },
-  { timestamps: { createdAt: true, updatedAt: false } }
+  { timestamps: { createdAt: true, updatedAt: false } },
 );
 
 export default mongoose.model("File", fileSchema);
