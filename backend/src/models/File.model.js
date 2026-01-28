@@ -30,6 +30,23 @@ const fileSchema = new mongoose.Schema(
       default: "pending",
     },
 
+    tags: {
+      type: [String],
+      default: [],
+      index: true,
+      set: (tags) => tags.map((t) => t.trim().toLowerCase()),
+      validate: {
+        validator: (tags) => tags.length <= 10,
+        message: "A file can have at most 10 tags",
+      },
+    },
+
+    description: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
     isDeleted: {
       type: Boolean,
       default: false,
