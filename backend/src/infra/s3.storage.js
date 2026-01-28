@@ -4,6 +4,7 @@ import { s3Client } from "../config/awsS3.config.js";
 
 export class S3Storage {
   async getUploadUrl({ key, mimeType }) {
+    
     const command = new PutObjectCommand({
       Bucket: process.env.AWS_BUCKET,
       Key: key,

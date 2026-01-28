@@ -1,6 +1,6 @@
 import File from "../models/File.model.js";
 import { S3Storage } from "../infra/s3.storage.js";
-import { sanitizeFilename } from "../../utils/sanitize.js";
+import { sanitizeFilename } from "../utils/sanitizeFilename.js";
 
 const storage = new S3Storage();
 
