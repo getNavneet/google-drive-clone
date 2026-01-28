@@ -8,11 +8,16 @@ export class FileService {
   static async createUploadIntent(user, dto) {
     const filename = sanitizeFilename(dto.filename);
 
-    const s3Key = `users/${user.id}/${Date.now()}_${filename}`;
+    const s3Key = `users/${user.username}/${Date.now()}_${filename}`;
 
     const uploadUrl = await storage.getUploadUrl({
       key: s3Key,
       mimeType: dto.mimeType,
+      metadata: {
+        userId: user.id,
+        username: user.username,
+        email: user.email,
+      },
     });
 
     return { uploadUrl, s3Key };
