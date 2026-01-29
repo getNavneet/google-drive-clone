@@ -8,9 +8,7 @@ export const getUploadUrl = async (req, res) => {
 export const confirmUpload = async (req, res) => {
   const file = await FileService.confirmUpload(
     req.user,
-    req.body.s3Key,
-    req.body
+    req.body.fileId
   );
-
   res.status(201).json(file);
 };

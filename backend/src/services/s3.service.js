@@ -10,33 +10,51 @@ export class FileService {
     //this key is for machine so user._id was good 
     const s3Key = `users/${user.id}/${Date.now()}_${filename}`;
 
-    await File.create({
-      ownerId: user.id,
-      s3Key,
-      name: dto.filename,
-      mimeType: dto.mimeType,
-      status: "pending",
-    });
-
+  const file = await File.create({
+    ownerId: user.id,
+    s3Key,
+    name: dto.filename, // original filename (for UI)
+    mimeType: dto.mimeType,
+    size: dto.size,
+    status: "pending",
+  });
     const uploadUrl = await storage.getUploadUrl({
       key: s3Key,
       mimeType: dto.mimeType,
       metadata: {
-        userId: user.id,
-        username: user.username,
-        email: user.email,
+      fileId: file._id.toString(), 
+      ownerId: user.id.toString(),
       },
     });
 
-    return { uploadUrl, s3Key };
+      return {
+    uploadUrl,
+    fileId: file._id,
+  };
   }
 
-  static async confirmUpload(user, s3Key, meta) {
-    return File.create({
-      ownerId: user.id,
-      s3Key,
-      ...meta,
-      status: "active",
-    });
+
+// flow ===> Frontend → upload → send fileId → confirm
+
+static async confirmUpload(user, fileId) {
+  const file = await File.findOne({
+    _id: fileId,
+    ownerId: user.id,
+    status: "pending",
+  });
+
+  if (!file) {
+    throw new Error("Invalid or already confirmed upload");
   }
+
+  // OPTIONAL (recommended later):
+  // const head = await storage.headObject(file.s3Key);
+  // validate size & mime here
+
+  file.status = "active";
+  await file.save();
+
+  return file;
+}
+
 }
