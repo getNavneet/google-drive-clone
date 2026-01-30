@@ -1,4 +1,5 @@
 import File from "../models/File.model.js";
+import User from "../models/User.model.js";
 import { S3Storage } from "../infra/s3.storage.js";
 import { sanitizeFilename } from "../utils/sanitizeFilename.js";
 import Folder from "../models/Folder.model.js";
@@ -7,6 +8,17 @@ const storage = new S3Storage();
 
 export class FileService {
   static async createUploadIntent(user, dto) {
+     //checking storage quota
+    const dbUser = await User.findById(user.id).select(
+      "storageUsed storageLimit",
+    );
+
+    if (!dbUser) {
+      throw new Error("User not found");
+    }
+    if (dbUser.storageUsed + dto.size > dbUser.storageLimit) {
+      throw new Error("Storage quota exceeded");
+    }
 
     const folder = await Folder.findOne({
       _id: dto.parentFolderId || rootId,
@@ -46,7 +58,7 @@ export class FileService {
   }
 
   // flow ===> Frontend → upload → send fileId → confirm
-
+  //here we confirm that the file was uploaded and update the db by cjecking the size of file uploaded
   static async confirmUpload(user, fileId) {
     const file = await File.findOne({
       _id: fileId,
@@ -57,12 +69,42 @@ export class FileService {
     if (!file) {
       throw new Error("Invalid or already confirmed upload");
     }
-     //TODO
-    // OPTIONAL (recommended later):
-    // const head = await storage.headObject(file.s3Key);
-    // validate size & mime here
 
+    // Verify object exists in S3
+    const head = await storage.headObject(file.s3Key);
+
+    if (!head) {
+      throw new Error("File not found in storage");
+    }
+
+    // Validate ownership via metadata (extra safety)
+    if (head.Metadata?.ownerid !== user.id.toString()) {
+      throw new Error("Storage ownership mismatch");
+    }
+
+    // 3 Validate size
+    const actualSize = head.ContentLength;
+
+    if (actualSize <= 0) {
+      throw new Error("Uploaded file is empty");
+    }
+
+    // OPTIONAL: max size enforcement
+    const MAX_SIZE = 50 * 1024 * 1024; // 50MB
+    if (actualSize > MAX_SIZE) {
+      throw new Error("File exceeds allowed size");
+    }
+
+    //  Validate mime (optional but recommended)
+    if (file.mimeType && head.ContentType !== file.mimeType) {
+      throw new Error("MIME type mismatch");
+    }
+
+    // Update DB with trusted values
+    file.size = actualSize;
+    file.mimeType = head.ContentType;
     file.status = "active";
+
     await file.save();
 
     return file;
