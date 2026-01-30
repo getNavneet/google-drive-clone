@@ -1,8 +1,11 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
+
+// impoer routes
 import authRoutes from './routes/auth.routes.js';
 import fileRoutes from './routes/file.routes.js';
+import folderRoutes from './routes/folder.routes.js';
 
 const app = express();
 
@@ -19,7 +22,7 @@ app.use(
 // Routes 
 app.use('/api/auth', authRoutes);
 app.use('/api/files', fileRoutes);
-
+app.use('/api/folders', folderRoutes);
 // Public protected route example
 
 
