@@ -1,4 +1,4 @@
-import { FileService } from "../services/s3.service.js";
+import { FileService } from "../services/file.service.js";
 
 export const getUploadUrl = async (req, res) => {
   const data = await FileService.createUploadIntent(req.user, req.body);

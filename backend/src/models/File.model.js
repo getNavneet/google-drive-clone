@@ -58,6 +58,17 @@ const fileSchema = new mongoose.Schema(
       unique: true,
     },
 
+    previewKey: {
+      type: String,
+      default: null,
+    },
+
+    previewStatus: {
+      type: String,
+      enum: ["none", "processing", "ready", "failed"],
+      default: "none",
+    },
+
     parentFolderId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Folder",
