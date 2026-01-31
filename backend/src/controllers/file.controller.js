@@ -6,9 +6,19 @@ export const getUploadUrl = async (req, res) => {
 };
 
 export const confirmUpload = async (req, res) => {
-  const file = await FileService.confirmUpload(
-    req.user,
-    req.body.fileId
-  );
+  const file = await FileService.confirmUpload(req.user, req.body.fileId);
   res.status(201).json(file);
+};
+
+export const getBatchPreviews = async (req, res) => {
+  try {
+    const previews = await FileService.getBatchPreviews(
+      req.user.id,
+      req.body.fileIds,
+    );
+
+    res.json({ previews });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
 };

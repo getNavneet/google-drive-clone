@@ -8,7 +8,7 @@ const storage = new S3Storage();
 
 export class FileService {
   static async createUploadIntent(user, dto) {
-     //checking storage quota
+    //checking storage quota
     const dbUser = await User.findById(user.id).select(
       "storageUsed storageLimit",
     );
@@ -108,5 +108,29 @@ export class FileService {
     await file.save();
 
     return file;
+  }
+
+  static async getBatchPreviews(userId, fileIds) {
+    if (!Array.isArray(fileIds) || fileIds.length === 0) {
+      throw new Error("fileIds required");
+    }
+
+    const files = await File.find({
+      _id: { $in: fileIds },
+      ownerId: userId,
+      status: "active",
+      isDeleted: false,
+      previewKey: { $exists: true, $ne: null },
+    }).select("_id previewKey");
+
+    const previews = {};
+
+    await Promise.all(
+      files.map(async (file) => {
+        previews[file._id] = await storage.getDownloadUrl(file.previewKey);
+      }),
+    );
+
+    return previews;
   }
 }

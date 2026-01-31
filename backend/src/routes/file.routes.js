@@ -9,5 +9,6 @@ router.get('/status', (req, res) => {
 });
 router.post("/upload-url", protect, getUploadUrl);
 router.post("/confirm-upload", protect, confirmUpload);
+router.post("/get-previews", protect, getBatchPreviews);
 
 export default router;
