@@ -6,7 +6,7 @@ import cors from 'cors';
 import authRoutes from './routes/auth.routes.js';
 import fileRoutes from './routes/file.routes.js';
 import folderRoutes from './routes/folder.routes.js';
-import { get } from 'mongoose';
+import getInfoRoutes from './routes/getInfo.routes.js';
 
 const app = express();
 
@@ -24,7 +24,7 @@ app.use(
 app.use('/api/auth', authRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/folders', folderRoutes);
-app.use('/api/info',getInfoRoutes);
+app.use('/api/info', getInfoRoutes);
 
 
 // Public protected route example

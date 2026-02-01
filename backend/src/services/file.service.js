@@ -32,6 +32,7 @@ export class FileService {
 
     //this key is for machine so user._id was good
     const s3Key = `users/${user.id}/${dto.parentFolderId}/${Date.now()}_${filename}`;
+    //with this s3Key renaming and versioning will become difficult because s3key is unique for every upload
 
     const file = await File.create({
       ownerId: user.id,
