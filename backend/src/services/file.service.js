@@ -274,7 +274,7 @@ export class FileService {
   /**
    * Delete file and its preview
    */
-  static async deleteFile(user, fileId) {
+ static async deleteFile(user, fileId) {
     const file = await File.findOne({
       _id: fileId,
       ownerId: user.id,
@@ -285,35 +285,44 @@ export class FileService {
       throw new Error("File not found");
     }
 
-    // Delete from S3
-    // await storage.deleteObject(file.s3Key);
+    // Only reclaim storage if file was fully uploaded (active status)
+    const storageToReclaim = file.status === "active" ? file.size : 0;
 
-    // Delete preview if exists
-    // if (file.hasPreview && file.previewKey) {
-    //   try {
-    //     await storage.deleteObject(file.previewKey);
-    //   } catch (error) {
-    //     console.error("Error deleting preview:", error);
-    //   }
-    // }
+    // Soft delete the file and update user storage atomically
+    // This prevents race conditions between marking deleted and updating quota
+    if (storageToReclaim > 0) {
+      const updateResult = await User.findOneAndUpdate(
+        { 
+          _id: user.id,
+          // Only update if user has enough storage used to reclaim
+          // This prevents negative storage values
+          storageUsed: { $gte: storageToReclaim }
+        },
+        {
+          $inc: { storageUsed: -storageToReclaim },
+        },
+        { new: true }
+      );
 
-    // Update user's storage quota
-    if (file.status === "active") {
-      await User.findByIdAndUpdate(user.id, {
-        $inc: { storageUsed: -file.size },
-      });
+      if (!updateResult) {
+        throw new Error("Failed to update storage quota - possible inconsistency");
+      }
     }
 
-    // Soft delete
+    // Mark file as soft deleted
     file.isDeleted = true;
     file.deletedAt = new Date();
     await file.save();
 
-    return { success: true };
+    return { 
+      success: true,
+      storageReclaimed: storageToReclaim 
+    };
   }
 
-  /**
-   * Batch delete files
+/**
+   * Batch soft delete files and reclaim storage quota
+   * Note: Does not delete from S3 - only marks as deleted and reduces user quota
    */
   static async batchDeleteFiles(user, fileIds) {
     if (!Array.isArray(fileIds) || fileIds.length === 0) {
@@ -336,41 +345,71 @@ export class FileService {
       totalSizeReclaimed: 0,
     };
 
-    await Promise.allSettled(
+    // Calculate total storage to reclaim
+    for (const file of files) {
+      if (file.status === "active") {
+        results.totalSizeReclaimed += file.size;
+      }
+    }
+
+    // Update user's storage quota first (atomic operation)
+    if (results.totalSizeReclaimed > 0) {
+      const updateResult = await User.findOneAndUpdate(
+        { 
+          _id: user.id,
+          storageUsed: { $gte: results.totalSizeReclaimed }
+        },
+        {
+          $inc: { storageUsed: -results.totalSizeReclaimed },
+        },
+        { new: true }
+      );
+
+      if (!updateResult) {
+        throw new Error("Failed to update storage quota - possible inconsistency");
+      }
+    }
+
+    // Now soft delete all files
+    const deleteResults = await Promise.allSettled(
       files.map(async (file) => {
-        try {
-          await storage.deleteObject(file.s3Key);
-
-          if (file.hasPreview && file.previewKey) {
-            await storage.deleteObject(file.previewKey).catch((err) =>
-              console.error("Preview deletion error:", err)
-            );
-          }
-
-          file.isDeleted = true;
-          file.deletedAt = new Date();
-          await file.save();
-
-          results.deleted++;
-          if (file.status === "active") {
-            results.totalSizeReclaimed += file.size;
-          }
-        } catch (error) {
-          console.error(`Error deleting file ${file._id}:`, error);
-          results.failed++;
-        }
+        file.isDeleted = true;
+        file.deletedAt = new Date();
+        await file.save();
       })
     );
 
-    // Update user's storage quota
-    if (results.totalSizeReclaimed > 0) {
-      await User.findByIdAndUpdate(user.id, {
-        $inc: { storageUsed: -results.totalSizeReclaimed },
+    // Count successes and failures
+    deleteResults.forEach((result) => {
+      if (result.status === "fulfilled") {
+        results.deleted++;
+      } else {
+        results.failed++;
+        console.error("Error soft deleting file:", result.reason);
+      }
+    });
+
+    // If any deletions failed, we need to rollback the storage quota
+    if (results.failed > 0) {
+      // Calculate how much to rollback (for failed deletions)
+      let rollbackAmount = 0;
+      deleteResults.forEach((result, index) => {
+        if (result.status === "rejected" && files[index].status === "active") {
+          rollbackAmount += files[index].size;
+        }
       });
+
+      if (rollbackAmount > 0) {
+        await User.findByIdAndUpdate(user.id, {
+          $inc: { storageUsed: rollbackAmount },
+        });
+        results.totalSizeReclaimed -= rollbackAmount;
+      }
     }
 
     return results;
   }
+
 
   /**
    * Move file to different folder
