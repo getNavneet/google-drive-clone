@@ -1,5 +1,5 @@
 export class FolderService {
-  static async createFolder(user, dto) {  //user and dto are two objects
+  static async createNewFolder(user, dto) {  //user and dto are two objects
     const parent = await Folder.findOne({
       _id: dto.parentFolderId,
       ownerId: user.id,
