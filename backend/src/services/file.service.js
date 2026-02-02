@@ -28,21 +28,25 @@ export class FileService {
 
     if (!folder) throw new Error("Invalid folder");
 
-    const filename = sanitizeFilename(dto.filename);
+    // const filename = sanitizeFilename(dto.filename);
 
     //this key is for machine so user._id was good
-    const s3Key = `users/${user.id}/${dto.parentFolderId}/${Date.now()}_${filename}`;
-    //with this s3Key renaming and versioning will become difficult because s3key is unique for every upload
 
     const file = await File.create({
       ownerId: user.id,
       parentFolderId: folder._id,
-      s3Key,
-      name: dto.filename, // original filename (for UI)
+      fileName: dto.filename,
       mimeType: dto.mimeType,
       size: dto.size,
       status: "pending",
     });
+
+    // AFTER file is created
+    const s3Key = `users/${user.id}/files/${file._id}/original`;
+
+    file.s3Key = s3Key;
+    await file.save();
+
     const uploadUrl = await storage.getUploadUrl({
       key: s3Key,
       mimeType: dto.mimeType,
