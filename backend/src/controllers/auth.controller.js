@@ -1,5 +1,7 @@
 import User from "../models/User.model.js";
 import { generateToken } from "../middleware/auth.middleware.js";
+import { FolderService } from "../services/folder.service.js";
+
 const isValidEmail = (email) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
@@ -33,14 +35,7 @@ export const registerUser = async (req, res) => {
       passwordHash: password, // ← gets hashed in pre-save hook
     });
 
-    await Folder.create({
-      ownerId: user._id,
-      name: "Home",
-      parentFolderId: null,
-      path: "/",
-      isRoot: true,
-      isDeleted: false,
-    });
+    let homeFolder = await FolderService.ensureRootFolder(user._id);
 
     const token = generateToken(user._id, user.email);
 
@@ -58,6 +53,7 @@ export const registerUser = async (req, res) => {
         email: user.email,
         storageUsed: user.storageUsed,
         storageLimit: user.storageLimit,
+        homeFolderId: homeFolder._id.toString(),
       },
     });
   } catch (err) {

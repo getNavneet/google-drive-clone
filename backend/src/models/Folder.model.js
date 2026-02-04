@@ -137,7 +137,7 @@ folderSchema.index(
 );
 
 // Pre-save hook: ensure path is set correctly
-folderSchema.pre("save", async function (next) {
+folderSchema.pre("save", async function () {
   // Only validate path if it's being modified
   if (this.isModified("path")) {
     // Root folder validation
@@ -151,7 +151,6 @@ folderSchema.pre("save", async function (next) {
     }
   }
 
-  next();
 });
 
 // Virtual: check if this is root folder

@@ -19,7 +19,7 @@ export class FileService {
 
     // Check storage quota
     const dbUser = await User.findById(user.id).select(
-      "storageUsed storageLimit"
+      "storageUsed storageLimit",
     );
 
     if (!dbUser) {
@@ -56,13 +56,11 @@ export class FileService {
     });
 
     // Generate S3 key with file._id for better organization
-    const s3Key = `users/${user.id}/files/${file._id}/original`;
-    file.s3Key = s3Key;
+    file.s3Key = `users/${user.id}/files/${file._id}/original`;
     await file.save();
-
     // Generate presigned upload URL
     const uploadUrl = await storage.getUploadUrl({
-      key: s3Key,
+      key: file.s3Key,
       mimeType,
       metadata: {
         fileId: file._id.toString(),
@@ -157,8 +155,11 @@ export class FileService {
     const previews = {};
     await Promise.all(
       files.map(async (file) => {
-        previews[file._id] = await storage.getDownloadUrl(file.previewKey, 3600);
-      })
+        previews[file._id] = await storage.getDownloadUrl(
+          file.previewKey,
+          3600,
+        );
+      }),
     );
 
     return previews;
@@ -220,7 +221,11 @@ export class FileService {
         const downloadUrl = await storage.getDownloadUrl(file.s3Key, 3600);
         let previewUrl = null;
 
-        if (file.hasPreview && file.previewStatus === "ready" && file.previewKey) {
+        if (
+          file.hasPreview &&
+          file.previewStatus === "ready" &&
+          file.previewKey
+        ) {
           previewUrl = await storage.getDownloadUrl(file.previewKey, 3600);
         }
 
@@ -229,7 +234,7 @@ export class FileService {
           downloadUrl,
           previewUrl,
         };
-      })
+      }),
     );
 
     return filesWithUrls;
@@ -274,7 +279,7 @@ export class FileService {
   /**
    * Delete file and its preview
    */
- static async deleteFile(user, fileId) {
+  static async deleteFile(user, fileId) {
     const file = await File.findOne({
       _id: fileId,
       ownerId: user.id,
@@ -292,20 +297,22 @@ export class FileService {
     // This prevents race conditions between marking deleted and updating quota
     if (storageToReclaim > 0) {
       const updateResult = await User.findOneAndUpdate(
-        { 
+        {
           _id: user.id,
           // Only update if user has enough storage used to reclaim
           // This prevents negative storage values
-          storageUsed: { $gte: storageToReclaim }
+          storageUsed: { $gte: storageToReclaim },
         },
         {
           $inc: { storageUsed: -storageToReclaim },
         },
-        { new: true }
+        { new: true },
       );
 
       if (!updateResult) {
-        throw new Error("Failed to update storage quota - possible inconsistency");
+        throw new Error(
+          "Failed to update storage quota - possible inconsistency",
+        );
       }
     }
 
@@ -314,13 +321,13 @@ export class FileService {
     file.deletedAt = new Date();
     await file.save();
 
-    return { 
+    return {
       success: true,
-      storageReclaimed: storageToReclaim 
+      storageReclaimed: storageToReclaim,
     };
   }
 
-/**
+  /**
    * Batch soft delete files and reclaim storage quota
    * Note: Does not delete from S3 - only marks as deleted and reduces user quota
    */
@@ -355,18 +362,20 @@ export class FileService {
     // Update user's storage quota first (atomic operation)
     if (results.totalSizeReclaimed > 0) {
       const updateResult = await User.findOneAndUpdate(
-        { 
+        {
           _id: user.id,
-          storageUsed: { $gte: results.totalSizeReclaimed }
+          storageUsed: { $gte: results.totalSizeReclaimed },
         },
         {
           $inc: { storageUsed: -results.totalSizeReclaimed },
         },
-        { new: true }
+        { new: true },
       );
 
       if (!updateResult) {
-        throw new Error("Failed to update storage quota - possible inconsistency");
+        throw new Error(
+          "Failed to update storage quota - possible inconsistency",
+        );
       }
     }
 
@@ -376,7 +385,7 @@ export class FileService {
         file.isDeleted = true;
         file.deletedAt = new Date();
         await file.save();
-      })
+      }),
     );
 
     // Count successes and failures
@@ -409,7 +418,6 @@ export class FileService {
 
     return results;
   }
-
 
   /**
    * Move file to different folder
@@ -536,7 +544,11 @@ export class FileService {
         const downloadUrl = await storage.getDownloadUrl(file.s3Key, 3600);
         let previewUrl = null;
 
-        if (file.hasPreview && file.previewStatus === "ready" && file.previewKey) {
+        if (
+          file.hasPreview &&
+          file.previewStatus === "ready" &&
+          file.previewKey
+        ) {
           previewUrl = await storage.getDownloadUrl(file.previewKey, 3600);
         }
 
@@ -545,7 +557,7 @@ export class FileService {
           downloadUrl,
           previewUrl,
         };
-      })
+      }),
     );
 
     return filesWithUrls;
@@ -577,7 +589,11 @@ export class FileService {
         const downloadUrl = await storage.getDownloadUrl(file.s3Key, 3600);
         let previewUrl = null;
 
-        if (file.hasPreview && file.previewStatus === "ready" && file.previewKey) {
+        if (
+          file.hasPreview &&
+          file.previewStatus === "ready" &&
+          file.previewKey
+        ) {
           previewUrl = await storage.getDownloadUrl(file.previewKey, 3600);
         }
 
@@ -586,7 +602,7 @@ export class FileService {
           downloadUrl,
           previewUrl,
         };
-      })
+      }),
     );
 
     return filesWithUrls;

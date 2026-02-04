@@ -70,7 +70,6 @@ const fileSchema = new mongoose.Schema(
 
     s3Key: {
       type: String,
-      required: true,
       unique: true,
     },
     hasPreview: {
@@ -193,15 +192,11 @@ fileSchema.statics.findByType = async function (
   });
 };
 
-// Pre-save hook to set defaults
-fileSchema.pre("save", function (next) {
-  // Ensure deleted files have deletedAt timestamp
+fileSchema.pre("save", async function () {
   if (this.isDeleted && !this.deletedAt) {
     this.deletedAt = new Date();
   }
-  next();
 });
-
 // Configure toJSON to include virtuals
 fileSchema.set("toJSON", { virtuals: true });
 fileSchema.set("toObject", { virtuals: true });
