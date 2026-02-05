@@ -10,12 +10,19 @@ export class FileService {
    * Create upload intent - generates presigned URL for direct S3 upload
    */
   static async createUploadIntent(user, dto) {
-    const { filename, mimeType, size, parentFolderId, tags, description } = dto;
+    const { filename, mimeType, parentFolderId, tags, description } = dto;
+      let { size } = dto;
 
     // Validate required fields
     if (!filename || !mimeType || !size) {
       throw new Error("Missing required fields: filename, mimeType, size");
     }
+
+    size = parseInt(size, 10);
+
+    if (isNaN(size) || size <= 0) {
+    throw new Error("Invalid size value");
+  }
 
     // Check storage quota
     const dbUser = await User.findById(user.id).select(
