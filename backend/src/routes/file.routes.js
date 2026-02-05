@@ -33,6 +33,12 @@ router.post("/confirm-upload", protect, confirmUpload);
 router.post("/get-previews", protect, getBatchPreviews);
 router.post("/preview-webhook", previewWebhook); // No auth - uses API key
 
+// Search and filter 
+// keep above Parameterized routes last (/:id, /:fileId, etc.)
+router.get("/search", protect, searchFiles);
+router.post("/by-tags", protect, getFilesByTags);
+router.get("/stats", protect, getFileStats);
+
 // File CRUD
 router.get("/:fileId", protect, getFile);
 router.get("/folder/:folderId", protect, listFiles);
@@ -45,9 +51,6 @@ router.put("/:fileId/rename", protect, renameFile);
 router.put("/:fileId/tags", protect, updateTags);
 router.put("/:fileId/description", protect, updateDescription);
 
-// Search and filter
-router.get("/search", protect, searchFiles);
-router.post("/by-tags", protect, getFilesByTags);
-router.get("/stats", protect, getFileStats);
+
 
 export default router;

@@ -205,6 +205,7 @@ export class FileService {
       ownerId: user.id,
       parentFolderId: folderId,
       isDeleted: false,
+      status: "active",
     })
       .sort({ createdAt: -1 })
       .limit(limit)
@@ -277,7 +278,7 @@ export class FileService {
   }
 
   /**
-   * Delete file and its preview
+   * soft delete single file and reclaim storage quota
    */
   static async deleteFile(user, fileId) {
     const file = await File.findOne({
@@ -290,10 +291,8 @@ export class FileService {
       throw new Error("File not found");
     }
 
-    // Only reclaim storage if file was fully uploaded (active status)
     const storageToReclaim = file.status === "active" ? file.size : 0;
 
-    // Soft delete the file and update user storage atomically
     // This prevents race conditions between marking deleted and updating quota
     if (storageToReclaim > 0) {
       const updateResult = await User.findOneAndUpdate(
@@ -329,7 +328,6 @@ export class FileService {
 
   /**
    * Batch soft delete files and reclaim storage quota
-   * Note: Does not delete from S3 - only marks as deleted and reduces user quota
    */
   static async batchDeleteFiles(user, fileIds) {
     if (!Array.isArray(fileIds) || fileIds.length === 0) {
@@ -398,7 +396,7 @@ export class FileService {
       }
     });
 
-    // If any deletions failed, we need to rollback the storage quota
+    // If any deletions failed, we need to rollback the storage q
     if (results.failed > 0) {
       // Calculate how much to rollback (for failed deletions)
       let rollbackAmount = 0;

@@ -162,7 +162,7 @@ async function generateVideoPreview(videoBuffer, mimeType) {
     }
   }
 }
-
+ 
 /**
  * Generate PDF preview
  */

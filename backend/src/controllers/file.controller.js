@@ -557,6 +557,8 @@ export const searchFiles = async (req, res) => {
  */
 export const getFileStats = async (req, res) => {
   try {
+    console.log("Getting file stats for user:", req.user.id);
+    
     const stats = await FileService.getFileStats(req.user.id);
 
     res.status(200).json({

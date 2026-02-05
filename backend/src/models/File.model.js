@@ -93,7 +93,7 @@ const fileSchema = new mongoose.Schema(
 );
 
 // Compound indexes for common queries
-fileSchema.index({ ownerId: 1, parentFolderId: 1, isDeleted: 1 });
+fileSchema.index({ ownerId: 1, parentFolderId: 1, isDeleted: 1, status: 1 });
 fileSchema.index({ ownerId: 1, status: 1, isDeleted: 1 });
 fileSchema.index({ ownerId: 1, hasPreview: 1 });
 fileSchema.index({ fileName: "text" }); // Text search index
