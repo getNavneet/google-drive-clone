@@ -10,11 +10,12 @@ const isValidEmail = (email) => {
 export const registerUser = async (req, res) => {
   try {
     const { email, password } = req.body;
+console.log("Model collection name1:", User.collection.name); //debugging
 
     if (!email || !password) {
       return res.status(400).json({ error: "Email and password are required" });
     }
-
+   
     if (!isValidEmail(email)) {
       return res.status(400).json({ error: "Invalid email format" });
     }
@@ -34,9 +35,7 @@ export const registerUser = async (req, res) => {
       email,
       passwordHash: password, // ← gets hashed in pre-save hook
     });
-
     let homeFolder = await FolderService.ensureRootFolder(user._id);
-
     const token = generateToken(user._id, user.email);
 
     res.cookie("auth_token", token, {
